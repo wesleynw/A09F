@@ -1,0 +1,13 @@
+[Unit]
+Description=a discord bot
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+WorkingDirectory=/home/wesley/frog
+ExecStart=/usr/bin/python3 bot.py
+User=wesley
+Restart=always
+RestartSec=5
