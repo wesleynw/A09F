@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 intents = discord.Intents().default()
 
 db_client = MongoClient('localhost',27017)
-db = db_client["discord_frog_db"]
+db = db_client["discord_A09F_db"]
 bot = commands.Bot(command_prefix='.', intents=intents, help_command=None)
 
 
@@ -78,7 +78,7 @@ async def help(ctx):
     embed.add_field(name="⏪ .m [name]", value="send the photo or video with the given name", inline=False)
     embed.add_field(name="🧾 .m", value="show a list of all photos and videos")
     embed.add_field(name="🏓 ping", value="pong!")
-    embed.add_field(name="______", value="https://github.com/wesleynw/frog", inline=False)
+    embed.add_field(name="______", value="https://github.com/wesleynw/A09F", inline=False)
     await ctx.send(embed=embed)
 
 
@@ -117,5 +117,5 @@ async def embed_pagination(author, msg : discord.Message, embed : discord.Embed,
 
 ### RUN
 load_dotenv()
-token = os.environ.get('FROG_DISCORD_TOKEN')
+token = os.environ.get('A09F_DISCORD_TOKEN')
 bot.run(token)
