@@ -6,7 +6,7 @@ After=network.target
 WantedBy=multi-user.target
 
 [Service]
-WorkingDirectory=/home/wesley/frog
+WorkingDirectory=/home/wesley/A09F
 ExecStart=/usr/bin/python3 bot.py
 User=wesley
 Restart=always
