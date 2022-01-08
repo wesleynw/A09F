@@ -41,7 +41,7 @@ async def m(ctx, *args):
     elif args[0] == 'add':
         if l == 1:
             await ctx.send("you have to enter a name for your photo or video")
-        elif len(ctx.message.attachments < 1):
+        elif len(ctx.message.attachments) < 1:
             await ctx.send("you have to attach some photo or video")
         else:
             prev_url = coll.find_one({'_id' : args[1]})
@@ -53,19 +53,22 @@ async def m(ctx, *args):
                     r = str(reaction.emoji)
                     return user == ctx.author and (r == '✅' or r == '❌')
                 try:
-                    reaction, user = await bot.wait_for('reaction_add', timeout=10.0, check=check)
+                    reaction, user = await bot.wait_for('reaction_add', timeout=20.0, check=check)
                 except asyncio.TimeoutError:
+                    await msg.delete()
                     return
                 else:
                     r = str(reaction.emoji)
                     if r == '❌':
+                        await msg.delete()
                         return
 
+            await msg.delete()
             url = ctx.message.attachments[0].proxy_url
-            coll.update_one({'_id' : args[0]}, {'$set' : {'url' : url}}, upsert=True)
+            coll.update_one({'_id' : args[1]}, {'$set' : {'url' : url}}, upsert=True)
             await ctx.send('got it')
     else:
-        url = coll.find_one({"_id" : args[1]})
+        url = coll.find_one({"_id" : args[0]})
         if (url is None):
             await ctx.send("I couldn't find that...")
             return
@@ -76,9 +79,9 @@ async def help(ctx):
     embed = discord.Embed(title="⭐️ A09F help ⭐️", description="______", color=0x3498db)
     embed.add_field(name="⏺ .m add [name]", value="add the given photo or video to the bot's library", inline=False)
     embed.add_field(name="⏪ .m [name]", value="send the photo or video with the given name", inline=False)
-    embed.add_field(name="🧾 .m", value="show a list of all photos and videos")
-    embed.add_field(name="🏓 ping", value="pong!")
-    embed.add_field(name="______", value="https://github.com/wesleynw/A09F", inline=False)
+    embed.add_field(name="🔡 .m", value="show a list of all photos and videos")
+    embed.add_field(name="🏓 ping", value="pong!", inline=False)
+    embed.set_footer(text="https://github.com/wesleynw/A09F")
     await ctx.send(embed=embed)
 
 
