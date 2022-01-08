@@ -62,8 +62,6 @@ async def m(ctx, *args):
                     if r == '❌':
                         await msg.delete()
                         return
-
-            await msg.delete()
             url = ctx.message.attachments[0].proxy_url
             coll.update_one({'_id' : args[1]}, {'$set' : {'url' : url}}, upsert=True)
             await ctx.send('got it')
