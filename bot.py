@@ -22,7 +22,7 @@ async def on_ready():
 ### COMMANDS
 @bot.command()
 async def ping(ctx):
-    await ctx.send(f'🏓 Pong! **{round(bot.latency * 1000, 3)}ms**.')
+    await ctx.send(f'🏓 Pong! **{round(bot.latency * 1000)}ms**.')
 
 @bot.command()
 async def m(ctx, *args):
@@ -60,7 +60,7 @@ async def m(ctx, *args):
                     r = str(reaction.emoji)
                     if r == '❌':
                         return
-                        
+
             url = ctx.message.attachments[0].proxy_url
             coll.update_one({'_id' : args[0]}, {'$set' : {'url' : url}}, upsert=True)
             await ctx.send('got it')
