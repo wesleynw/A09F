@@ -33,7 +33,8 @@ async def m(ctx, *args):
             await ctx.send("you haven't saved anything yet")
         else:
             all = list(coll.find({}))
-            all.sort(key=lambda x: x.get('_id'))
+            all = [x.get("_id") for x in all]
+            all.sort()
             embed = discord.Embed(title='🗣 all commands', color=0x3498db)
             embed.set_footer(text='page 1')
             msg = await ctx.send(embed=embed)
@@ -77,7 +78,7 @@ async def q(ctx, *args):
     coll = db[str(ctx.guild.id)]
     if len(args) == 0:
         quotes = coll.find_one({"_id" : "quotes"}).get("arr")
-        quotes = [str(x[0]) + " said " + str(x[1]) for x in quotes]
+        quotes = [str((await bot.fetch_user(x[0])).name) + ' said "' + str(x[1]) + '"' for x in quotes]
 
         embed = discord.Embed(title='quotes', color=0x3498db)
         embed.set_footer(text='page 1')
@@ -115,7 +116,7 @@ async def embed_pagination(author, msg : discord.Message, embed : discord.Embed,
     embed.clear_fields()
     page_size = 10
     for i in range((page - 1) * page_size, min(len(pages), page - 1 + page_size)):
-        embed.add_field(name=pages[i].get('_id'), value='\u200b', inline=False);
+        embed.add_field(name=pages[i], value='\u200b', inline=False);
 
     n_pages = int(ceil(len(pages) / page_size))
     embed.set_footer(text=f'page {page} of {n_pages}')
