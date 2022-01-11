@@ -73,11 +73,38 @@ async def m(ctx, *args):
         await ctx.send(url.get("url"))
 
 @bot.command()
+async def q(ctx, *args):
+    coll = db[str(ctx.guild.id)]
+    if len(args) == 0:
+        quotes = coll.find_one({"_id" : "quotes"}).get("arr")
+        quotes = [str(x[0]) + " said " + str(x[1]) for x in quotes]
+
+        embed = discord.Embed(title='quotes', color=0x3498db)
+        embed.set_footer(text='page 1')
+        msg = await ctx.send(embed=embed)
+        await embed_pagination(ctx.author, msg, embed, quotes, 1)
+
+
+    elif len(args) == 1 and args[0] == "add":
+        if ctx.message.reference is not None:
+            msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+        else:
+            async for m_hist in ctx.channel.history(before=ctx.message.created_at):
+                if m_hist.content is not None:
+                    msg = m_hist
+                    break; 
+        coll.update_one({'_id' : 'quotes'}, {'$push' : {'arr' : [msg.author.id, msg.content]}}, upsert=True)
+        await ctx.send("quoted!")
+
+    
+@bot.command()
 async def help(ctx):
     embed = discord.Embed(title="⭐️ A09F help ⭐️", description="______", color=0x3498db)
     embed.add_field(name="⏺ .m add [name]", value="add the given photo or video to the bot's library", inline=False)
     embed.add_field(name="⏪ .m [name]", value="send the photo or video with the given name", inline=False)
     embed.add_field(name="🔡 .m", value="show a list of all photos and videos")
+    embed.add_field(name="✍️ .q add", value="quote the above message, or a message that is replied to", inline=False)
+    embed.add_field(name="📝 .q", value="show a list of all quotes", inline=False)
     embed.add_field(name="🏓 ping", value="pong!", inline=False)
     embed.set_footer(text="https://github.com/wesleynw/A09F")
     await ctx.send(embed=embed)
