@@ -1,6 +1,7 @@
 import discord
-import os, logging, asyncio
+import os, logging, asyncio, requests
 from math import ceil
+from re import sub
 from discord.ext import commands
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -25,6 +26,28 @@ async def ping(ctx):
     await ctx.send(f'🏓 Pong! **{round(bot.latency * 1000)}ms**.')
 
 @bot.command()
+async def i(ctx, *args):
+    plain_query = ' '.join(args)
+    query = sub(' ','%20', plain_query)
+    cx = os.environ.get('DISCORD_GOOGLE_CX')
+    api = os.environ.get('DISCORD_GOOGLE_API')
+    URL = f"https://customsearch.googleapis.com/customsearch/v1?cx={cx}&num=10&q={query}&safe=off&searchType=image&key={api}"
+    print(URL)
+    try:
+        data = requests.get(URL).json()
+    except KeyError():
+        await ctx.send("I couldn't find any images for that")
+        return
+    image_urls = [x['link'] for x in data['items']]
+
+
+    embed = discord.Embed(title=plain_query, color=0x3498db)
+    embed.set_footer(text='page 1')
+    msg = await ctx.send(embed=embed)
+    await embed_pagination(ctx.author, msg, embed, image_urls, 1, 1)
+
+
+@bot.command()
 async def m(ctx, *args):
     coll = db[str(ctx.guild.id)]
     l = len(args)
@@ -45,6 +68,7 @@ async def m(ctx, *args):
         elif len(ctx.message.attachments) < 1:
             await ctx.send("you have to attach some photo or video")
         else:
+            # TODO: consider adding past images by looking through history
             prev_url = coll.find_one({'_id' : args[1]})
             if prev_url is not None:
                 msg = await ctx.send("there's already something with that name, do you want to overwrite it?")
@@ -72,6 +96,7 @@ async def m(ctx, *args):
             await ctx.send("I couldn't find that...")
             return
         await ctx.send(url.get("url"))
+
 
 @bot.command()
 async def q(ctx, *args):
@@ -101,6 +126,7 @@ async def q(ctx, *args):
 @bot.command()
 async def help(ctx):
     embed = discord.Embed(title="⭐️ A09F help ⭐️", description="______", color=0x3498db)
+    embed.add_field(name="⏺ .i [query]", value="search for an image on Google Images", inline=False)
     embed.add_field(name="⏺ .m add [name]", value="add the given photo or video to the bot's library", inline=False)
     embed.add_field(name="⏪ .m [name]", value="send the photo or video with the given name", inline=False)
     embed.add_field(name="🔡 .m", value="show a list of all photos and videos")
@@ -111,19 +137,33 @@ async def help(ctx):
     await ctx.send(embed=embed)
 
 
+
+
 ### HELPERS
-async def embed_pagination(author, msg : discord.Message, embed : discord.Embed, pages : list, page : int):
+async def embed_pagination(author, msg : discord.Message, embed : discord.Embed, pages : list, page : int, page_size = 10):
     embed.clear_fields()
-    page_size = 10
     for i in range((page - 1) * page_size, min(len(pages), page - 1 + page_size)):
-        embed.add_field(name=pages[i], value='\u200b', inline=False);
+        print(pages[i])
+        if not str.startswith(pages[i], 'http'):
+            embed.add_field(name=pages[i], value='\u200b', inline=False)
+        else:
+            # TODO: need to test image error checking more heavily
+            # headers={'User-agent': 'Mozilla/5.0'}
+            # status = requests.get(pages[i], stream=True, timeout=0.25).status_code
+            # print(status)
+            # if status == 200:
+            embed.set_image(url=pages[i])
+            # else:
+            #     await embed_pagination(author, msg, embed, pages, page + 1, page_size)
+
+            
 
     n_pages = int(ceil(len(pages) / page_size))
     embed.set_footer(text=f'page {page} of {n_pages}')
     await msg.edit(embed=embed)
     if page > 1:
         await msg.add_reaction("⬅️")
-    elif len(pages) > page_size:
+    if page - 1 + page_size < len(pages):
         await msg.add_reaction("➡️")
 
     def check(reaction, user):
@@ -141,7 +181,7 @@ async def embed_pagination(author, msg : discord.Message, embed : discord.Embed,
         elif r == "➡️":
             page += 1
         await reaction.clear()
-        await embed_pagination(author, msg, embed, pages, page)
+        await embed_pagination(author, msg, embed, pages, page, page_size)
 
 
 ### RUN
