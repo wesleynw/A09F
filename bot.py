@@ -2,9 +2,11 @@ import discord
 import os, logging, asyncio, requests
 from math import ceil
 from re import sub
+from random import choice
 from discord.ext import commands
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from random_word import RandomWords
 
 logging.basicConfig(level=logging.INFO)
 intents = discord.Intents().default()
@@ -12,6 +14,7 @@ intents = discord.Intents().default()
 db_client = MongoClient('localhost',27017)
 db = db_client["discord_A09F_db"]
 bot = commands.Bot(command_prefix='.', intents=intents, help_command=None)
+# manage_messages, 
 
 
 ### EVENTS
@@ -28,23 +31,72 @@ async def ping(ctx):
 @bot.command()
 async def i(ctx, *args):
     plain_query = ' '.join(args)
-    query = sub(' ','%20', plain_query)
-    cx = os.environ.get('DISCORD_GOOGLE_CX')
-    api = os.environ.get('DISCORD_GOOGLE_API')
-    URL = f"https://customsearch.googleapis.com/customsearch/v1?cx={cx}&num=10&q={query}&safe=off&searchType=image&key={api}"
-    print(URL)
-    try:
-        data = requests.get(URL).json()
-    except KeyError():
+    query = sub(' ', '%20', plain_query)
+    URL = f"http://localhost:8080/search?lang=en&format=json&categories=images&q=%21goi%20{query}"
+
+    results = requests.get(URL, headers={'User-agent': 'Mozilla/5.0'}).json()
+    if len(results.get('results')) == 0:
         await ctx.send("I couldn't find any images for that")
         return
-    image_urls = [x['link'] for x in data['items']]
 
+    # acceptable_types = ['jpg', 'png', 'jpeg']
+    image_urls = [x['img_src'] for x in results['results']]
 
     embed = discord.Embed(title=plain_query, color=0x3498db)
     embed.set_footer(text='page 1')
     msg = await ctx.send(embed=embed)
     await embed_pagination(ctx.author, msg, embed, image_urls, 1, 1)
+
+@bot.command()
+async def s(ctx, *args):
+    if len(args) == 0:
+        r = RandomWords()
+        query = r.get_random_word(hasDictionaryDef="true", includePartOfSpeech="noun,verb", minDictionaryCount=10, minLength=3, maxLength=10)
+        print(query)
+    else:
+        query = sub(' ', '%20', ' '.join(args))
+    # cx = os.environ.get('DISCORD_GOOGLE_CX_STOCK')
+    # api = os.environ.get('DISCORD_GOOGLE_API')
+    # TODO: merge repetative code
+    # URL = f"https://customsearch.googleapis.com/customsearch/v1?cx={cx}&imgType=stock&num=10&q={query}&safe=off&searchType=image&key={api}"
+    # print(URL)
+    # try:
+    #     data = requests.get(URL).json()
+    # except KeyError():
+    #     await ctx.send("I couldn't find any images for that")
+    #     return
+
+    URL = f"http://localhost:8080/search?lang=en&format=json&categories=images&q=%21goi%20{query}"
+
+    results = requests.get(URL, headers={'User-agent': 'Mozilla/5.0'}).json()
+    if len(results.get('results')) == 0:
+        await ctx.send("I couldn't find any images for that")
+        return
+
+    # acceptable_types = ['jpg', 'png', 'jpeg']
+    image_urls = [x['img_src'] for x in results['results']]
+
+    # embed = discord.Embed(title=query, color=0x3498db)
+    # embed.set_footer(text='page 1')
+    # msg = await ctx.send(embed=embed)
+    # await embed_pagination(ctx.author, msg, embed, image_urls, 1, 1)
+
+    acceptable_types = ['image/jpeg', 'image/png']
+    image_urls = [x['link'] for x in data['items'] if x['fileFormat'] in acceptable_types]
+
+    await ctx.send(choice(image_urls))
+
+
+@bot.command()
+async def w(ctx, *args):
+    query = sub(' ','%20', ' '.join(args))
+    URL = f"https://api.marginalia.nu/public/search/{query}"
+
+    results = requests.get(URL).json()['results']
+    a = choice(results)['url']
+    await ctx.send(a)
+
+
 
 
 @bot.command()
@@ -127,11 +179,13 @@ async def q(ctx, *args):
 async def help(ctx):
     embed = discord.Embed(title="⭐️ A09F help ⭐️", description="______", color=0x3498db)
     embed.add_field(name="⏺ .i [query]", value="search for an image on Google Images", inline=False)
+    embed.add_field(name="⏺ .s [query (optional)]", value="return a random stock image matching the query, if specified", inline=False)
     embed.add_field(name="⏺ .m add [name]", value="add the given photo or video to the bot's library", inline=False)
     embed.add_field(name="⏪ .m [name]", value="send the photo or video with the given name", inline=False)
     embed.add_field(name="🔡 .m", value="show a list of all photos and videos")
     embed.add_field(name="✍️ .q add", value="quote the above message, or a message that is replied to", inline=False)
     embed.add_field(name="📝 .q", value="show a list of all quotes", inline=False)
+    embed.add_field(name="🃏 .w [query]", value="wildcard", inline=False)
     embed.add_field(name="🏓 ping", value="pong!", inline=False)
     embed.set_footer(text="https://github.com/wesleynw/A09F")
     await ctx.send(embed=embed)
@@ -140,48 +194,43 @@ async def help(ctx):
 
 
 ### HELPERS
-async def embed_pagination(author, msg : discord.Message, embed : discord.Embed, pages : list, page : int, page_size = 10):
+async def embed_pagination(author, msg : discord.Message, embed : discord.Embed, pages : list, page : int, page_size = 10, init=True):
     embed.clear_fields()
     for i in range((page - 1) * page_size, min(len(pages), page - 1 + page_size)):
-        print(pages[i])
         if not str.startswith(pages[i], 'http'):
             embed.add_field(name=pages[i], value='\u200b', inline=False)
         else:
-            # TODO: need to test image error checking more heavily
-            # headers={'User-agent': 'Mozilla/5.0'}
-            # status = requests.get(pages[i], stream=True, timeout=0.25).status_code
-            # print(status)
-            # if status == 200:
-            embed.set_image(url=pages[i])
-            # else:
-            #     await embed_pagination(author, msg, embed, pages, page + 1, page_size)
-
-            
+            embed.set_image(url=sub(' ','%20', pages[i]))
 
     n_pages = int(ceil(len(pages) / page_size))
     embed.set_footer(text=f'page {page} of {n_pages}')
     await msg.edit(embed=embed)
-    if page > 1:
+
+    if init:
         await msg.add_reaction("⬅️")
-    if page - 1 + page_size < len(pages):
         await msg.add_reaction("➡️")
+        await msg.add_reaction("🗑️")
 
     def check(reaction, user):
         r = str(reaction.emoji)
-        return user == author and (r == "➡️" or r == "⬅️")
+        return user == author and (r == "➡️" or r == "⬅️" or r == "🗑️") and reaction.message.id == msg.id
 
     try:
-        reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+        reaction, user = await bot.wait_for('reaction_add', timeout=120.0, check=check)
     except asyncio.TimeoutError:
         return
     else:
         r = str(reaction.emoji)
-        if r == "⬅️":
+        if r == "🗑️":
+            print("facts")
+            await msg.delete()
+            return
+        elif r == "⬅️" and page > 1:
             page -= 1
-        elif r == "➡️":
+        elif r == "➡️" and page * page_size < len(pages):
             page += 1
-        await reaction.clear()
-        await embed_pagination(author, msg, embed, pages, page, page_size)
+        await reaction.remove(author)
+        await embed_pagination(author, msg, embed, pages, page, page_size, False)
 
 
 ### RUN
