@@ -1,4 +1,5 @@
 discord 
 pymongo 
 python-dotenv
+pyyaml
 random-word
