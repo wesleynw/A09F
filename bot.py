@@ -235,5 +235,5 @@ async def embed_pagination(author, msg : discord.Message, embed : discord.Embed,
 
 ### RUN
 load_dotenv()
-token = os.environ.get('A09F_DISCORD_TOKEN')
+token = os.environ.get('DISCORD_TOKEN')
 bot.run(token)
