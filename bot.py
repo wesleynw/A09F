@@ -32,7 +32,9 @@ async def ping(ctx):
 async def i(ctx, *args):
     plain_query = ' '.join(args)
     query = sub(' ', '%20', plain_query)
-    URL = f"http://localhost:8080/search?lang=en&format=json&categories=images&q=%21goi%20{query}"
+    # URL = f"http://localhost:8080/search?lang=en&format=json&categories=images&q=%21goi%20{query}"
+    URL = f"http://searxng:8080/search?lang=en&format=json&categories=images&q=%21goi%20{query}"
+
 
     results = requests.get(URL, headers={'User-agent': 'Mozilla/5.0'}).json()
     if len(results.get('results')) == 0:
