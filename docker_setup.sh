@@ -9,7 +9,7 @@ docker run --restart=always \
              searxng/searxng
 
 docker run --restart=always \
-            --name mongodb -d \
+            -d \
             -p 27017:27017 \
             mongo
 
