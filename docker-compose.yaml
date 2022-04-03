@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  app:
+    build: .
+  database:
+    image: mongo:latest
+    ports: 
+    - '27017:27017'
+  searxng:
+    image: searxng/searxng:latest
+    volumes: 
+    - './searxng:/etc/searxng'
+    environment: 
+      BASE_URL: 'http://localhost:2222/'
+      INSTANCE_NAME: 'my-instance'
+    ports: 
+    - '2222:8080'
+
+
+
+  
